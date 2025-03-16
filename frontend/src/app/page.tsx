@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { MainLayout } from '@/components/layout/MainLayout';
-import { QuickAdd } from '@/components/memory/QuickAdd';
 import { Timeline } from '@/components/memory/Timeline';
 import type { Memory } from '@/types/memory';
 
@@ -61,13 +60,22 @@ export default function Home() {
   };
 
   const handleUpdateMemory = (updatedMemory: Memory) => {
-    setMemories((prev) =>
-      prev.map((memory) =>
-        memory.id === updatedMemory.id
-          ? updatedMemory
-          : memory
-      )
-    );
+    if (!updatedMemory.id) {
+      // Handle new memory
+      const memory: Memory = {
+        ...updatedMemory,
+        id: Date.now().toString(),
+        created_at: new Date().toISOString(),
+      };
+      setMemories(prev => [memory, ...prev]);
+    } else {
+      // Handle memory update
+      setMemories(prev =>
+        prev.map(memory =>
+          memory.id === updatedMemory.id ? updatedMemory : memory
+        )
+      );
+    }
   };
 
   const handleDeleteMemory = (id: string) => {
@@ -96,15 +104,12 @@ export default function Home() {
 
   return (
     <MainLayout>
-      <div className="space-y-8">
-        <QuickAdd onAdd={handleAddMemory} />
-        <Timeline
-          memories={memories}
-          onMemoryUpdate={handleUpdateMemory}
-          onMemoryDelete={handleDeleteMemory}
-          onMemoryPin={handlePinMemory}
-        />
-      </div>
+      <Timeline
+        memories={memories}
+        onMemoryUpdate={handleUpdateMemory}
+        onMemoryDelete={handleDeleteMemory}
+        onMemoryPin={handlePinMemory}
+      />
     </MainLayout>
   );
 }

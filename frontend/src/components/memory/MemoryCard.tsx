@@ -1,11 +1,11 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
 import { formatDistanceToNow, parseISO } from 'date-fns';
 import { motion } from 'framer-motion';
 import { PencilIcon, TrashIcon, StarIcon } from '@heroicons/react/24/outline';
 import { StarIcon as StarIconSolid } from '@heroicons/react/24/solid';
 import type { MemoryCardProps } from '@/types/memory';
 
-export const MemoryCard: React.FC<MemoryCardProps> = ({
+const MemoryCardComponent: React.FC<MemoryCardProps> = ({
   memory,
   onEdit,
   onDelete,
@@ -13,65 +13,82 @@ export const MemoryCard: React.FC<MemoryCardProps> = ({
 }) => {
   const [isHovered, setIsHovered] = useState(false);
 
+  const contentPreview = memory.content.slice(0, 150);
+  const hasMoreContent = memory.content.length > 150;
+
   return (
     <motion.div
-      layout
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      exit={{ opacity: 0, y: -20 }}
-      className="bg-white dark:bg-gray-800 rounded-lg shadow-md p-4 mb-4"
+      layout="position"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className={`relative aspect-square bg-white dark:bg-gray-800 overflow-hidden group rounded-xl
+        ${memory.isPinned ? 'border-2 border-yellow-400 dark:border-yellow-600' : 'border border-gray-200 dark:border-gray-700'}
+      `}
       onMouseEnter={() => setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
+      whileHover={{ scale: 1.02 }}
+      whileTap={{ scale: 0.98 }}
     >
-      <div className="flex justify-between items-start">
-        <div className="flex-1">
-          <p className="text-gray-600 dark:text-gray-300">{memory.content}</p>
-        </div>
-        <div className="flex space-x-2">
-          <button
+      <div className="absolute inset-0 p-4">
+        <p className="text-base md:text-lg text-gray-700 dark:text-gray-200 line-clamp-6 leading-relaxed">
+          {contentPreview}
+          {hasMoreContent && '...'}
+        </p>
+      </div>
+
+      <motion.div 
+        className="absolute inset-0 bg-black/50 flex flex-col justify-between p-4 opacity-0 group-hover:opacity-100 transition-opacity duration-200"
+        initial={false}
+      >
+        <div className="flex justify-end gap-2">
+          <motion.button
             onClick={() => onPin(memory.id)}
-            className="text-gray-400 hover:text-yellow-500 transition-colors"
+            className={`p-2 rounded-full bg-black/30 backdrop-blur-sm ${
+              memory.isPinned 
+                ? 'text-yellow-400' 
+                : 'text-white hover:text-yellow-400'
+            }`}
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             {memory.isPinned ? (
-              <StarIconSolid className="h-5 w-5 text-yellow-500" />
+              <StarIconSolid className="h-5 w-5" />
             ) : (
               <StarIcon className="h-5 w-5" />
             )}
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => onEdit(memory)}
-            className="text-gray-400 hover:text-blue-500 transition-colors"
+            className="p-2 rounded-full bg-black/30 backdrop-blur-sm text-white hover:text-blue-400"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             <PencilIcon className="h-5 w-5" />
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => onDelete(memory.id)}
-            className="text-gray-400 hover:text-red-500 transition-colors"
+            className="p-2 rounded-full bg-black/30 backdrop-blur-sm text-white hover:text-red-400"
+            whileHover={{ scale: 1.1 }}
+            whileTap={{ scale: 0.9 }}
           >
             <TrashIcon className="h-5 w-5" />
-          </button>
+          </motion.button>
         </div>
-      </div>
-      
-      <div className="mt-4 flex flex-wrap gap-2">
-        {memory.ai_tags.map((tag) => (
-          <span
-            key={tag}
-            className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-          >
-            {tag}
-          </span>
-        ))}
-      </div>
-      
-      <div className="mt-3 flex items-center text-sm text-gray-500 dark:text-gray-400">
-        <span className="mr-2">
+
+        <div className="text-sm text-white/90 font-medium">
           {formatDistanceToNow(parseISO(memory.created_at), { addSuffix: true })}
-        </span>
-        <span className="px-2 py-1 rounded-full text-xs bg-gray-100 dark:bg-gray-700">
-          {memory.category}
-        </span>
-      </div>
+        </div>
+      </motion.div>
     </motion.div>
   );
-}; 
+};
+
+export const MemoryCard = memo(MemoryCardComponent, (prevProps, nextProps) => {
+  return (
+    prevProps.memory.id === nextProps.memory.id &&
+    prevProps.memory.content === nextProps.memory.content &&
+    prevProps.memory.isPinned === nextProps.memory.isPinned &&
+    prevProps.memory.created_at === nextProps.memory.created_at
+  );
+}); 
